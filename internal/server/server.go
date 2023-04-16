@@ -51,7 +51,7 @@ func defaultServer() *Server {
 
 // Init initiales the server for which it is called for.
 // Each initialisation should be called from here, but the
-// implimentation should be carried out in another function
+// implementation should be carried out in another function
 // to keep this init function simple and clear.
 func (s *Server) Init(version string) {
 	s.Version = version
