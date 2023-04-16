@@ -38,7 +38,7 @@ tasks:
       - task: check
       - go build -ldflags="-X main.Version={{.GIT_TAG}}-{{.GIT_COMMIT}} -w -s"  -o youchooseserver cmd/youchooseserver/youchooseserver.go
       - mkdir -p bin
-      - mv go8 bin/
+      - mv youchooseserver bin/
       - cp .env bin
     silent: false
 
@@ -67,6 +67,16 @@ tasks:
     desc: Uses golangci-lint
     cmds:
       - golangci-lint run
+
+  docker-compose:start:
+    desc: Starts postgres service
+    cmds:
+      - docker compose -f compose.yaml up postgres --abort-on-container-exit
+
+  docker-compose:stop:
+    desc: Stop postgres service
+    cmds:
+      - docker compose -f compose.yaml down --volumes
 
   install:golangci:
     desc: Install golangci linter
