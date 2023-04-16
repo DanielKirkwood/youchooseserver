@@ -1,0 +1,73 @@
+# https://taskfile.dev
+
+version: '3'
+
+dotenv: [".env"]
+
+tasks:
+  default:
+    desc: List availible commands
+    cmds:
+      - task -l
+
+  list:
+    desc: List availible commands
+    cmds:
+      - task -l
+
+  dev:
+    desc: Hot reload. Watch for file changes and rebuild binary.
+    cmds:
+      - air
+    silent: true
+
+  build:
+    desc: Creates a compiled binary and copy configuration files into ./bin
+    vars:
+      GIT_TAG:
+        sh: git describe --abbrev=0 --tags
+      GIT_COMMIT:
+        sh: git rev-list -1 HEAD
+    cmds:
+      - task: check
+      - go build -ldflags="-X main.Version={{.GIT_TAG}}-{{.GIT_COMMIT}} -w -s"  -o youchooseserver cmd/youchooseserver/youchooseserver.go
+      - mkdir -p bin
+      - mv go8 bin/
+      - cp .env bin
+    silent: false
+
+  clean:
+    desc: Clears built files
+    cmds:
+      - rm -rf ./bin/*
+      - rm -rf ./bin/.*
+
+  clean:cache:
+    desc: Clear tests cache
+    cmds:
+      - go clean -testcache
+
+  tidy:
+    desc: Downloads dependencies and removes unused ones
+    cmds:
+      - go mod tidy
+
+  vet:
+    desc: Vets code
+    cmds:
+      - go vet ./...
+
+  lint:
+    desc: Uses golangci-lint
+    cmds:
+      - golangci-lint run
+
+  install:golangci:
+    desc: Install golangci linter
+    cmds:
+      - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+
+  install:air:
+    desc: Install a hot reloader. Watch for file changes and automatically rebuilds binary
+    cmds:
+      - go install github.com/cosmtrek/air@latest
