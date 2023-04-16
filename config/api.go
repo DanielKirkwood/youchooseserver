@@ -6,6 +6,9 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+// A Api gets and stores the API env variables
+// required for the rest API. Standard defaults
+// provided if env variables not set.
 type Api struct {
 	Name              string        `default:"youchoose_api"`
 	Host              string        `default:"0.0.0.0"`
