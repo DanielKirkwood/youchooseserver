@@ -10,7 +10,8 @@ import (
 // Can contain multiple configs within for different purposes.
 // For example, a Api config can be extracted into it's own struct.'
 type Config struct {
-	Api Api
+	Api      Api
+	Database Database
 }
 
 // New returns a new Config struct
@@ -21,6 +22,7 @@ func New() *Config {
 	}
 
 	return &Config{
-		Api: API(),
+		Api:      API(),
+		Database: DataStore(),
 	}
 }
