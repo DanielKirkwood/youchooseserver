@@ -10,11 +10,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 
 	"github.com/DanielKirkwood/youchooseserver/config"
 	"github.com/DanielKirkwood/youchooseserver/internal/middleware"
-	"github.com/go-chi/chi/v5"
+	db "github.com/DanielKirkwood/youchooseserver/third_party/database"
 )
 
 // A Server holds all the modules required for the rest API.
@@ -23,6 +26,7 @@ import (
 type Server struct {
 	Version    string
 	cfg        *config.Config
+	DB         *sqlx.DB
 	router     *chi.Mux
 	httpServer *http.Server
 }
@@ -59,12 +63,24 @@ func defaultServer() *Server {
 func (s *Server) Init(version string) {
 	s.Version = version
 	s.newRouter()
+	s.newDatabase()
+	s.setGlobalMiddleware()
 }
 
 // newRouter creates a new chi router on the servers
 // router object.
 func (s *Server) newRouter() {
 	s.router = chi.NewRouter()
+}
+
+func (s *Server) newDatabase() {
+	if s.cfg.Database.Driver == "" {
+		log.Fatal("please fill in database credentials in .env file or set in environment variable")
+	}
+	s.DB = db.NewSqlx(s.cfg.Database)
+	s.DB.SetMaxOpenConns(s.cfg.Database.MaxConnectionPool)
+	s.DB.SetMaxIdleConns(s.cfg.Database.MaxIdleConnections)
+	s.DB.SetConnMaxLifetime(s.cfg.Database.ConnectionsMaxLifeTime)
 }
 
 // setGlobalMiddleware enables our custom middleware on
