@@ -9,7 +9,7 @@ if [ -z "$TASK_PATH" ]
 then
   if is_user_root;
   then
-    sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
+    sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
     echo "task binary added to \$PATH"
   else
     echo "you need to be a sudo to add the binary to \$PATH"
