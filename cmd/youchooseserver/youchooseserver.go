@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+
+	"github.com/DanielKirkwood/youchooseserver/internal/server"
 )
 
 // Version is injected using ldflags during build time
@@ -17,4 +19,7 @@ var Version = "v0.1.0"
 // @BasePath /
 func main() {
 	log.Printf("Starting API version: %s\n", Version)
+	s := server.New()
+	s.Init(Version)
+	s.Run()
 }
