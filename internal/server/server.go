@@ -10,7 +10,10 @@ import (
 	"syscall"
 	"time"
 
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+
 	"github.com/DanielKirkwood/youchooseserver/config"
+	"github.com/DanielKirkwood/youchooseserver/internal/middleware"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -62,6 +65,22 @@ func (s *Server) Init(version string) {
 // router object.
 func (s *Server) newRouter() {
 	s.router = chi.NewRouter()
+}
+
+// setGlobalMiddleware enables our custom middleware on
+// the server's router.
+func (s *Server) setGlobalMiddleware() {
+	s.router.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"message": "endpoint not found"}`))
+	})
+	s.router.Use(middleware.Json)
+	s.router.Use(middleware.Audit)
+	s.router.Use(middleware.CORS)
+	if s.cfg.Api.RequestLog {
+		s.router.Use(chiMiddleware.Logger)
+	}
 }
 
 // Run runs the server.
