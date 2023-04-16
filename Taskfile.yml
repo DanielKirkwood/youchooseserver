@@ -21,6 +21,12 @@ tasks:
       - air
     silent: true
 
+  run:
+    desc: Runs the app
+    cmds:
+      - go run cmd/youchooseserver/youchooseserver.go
+    silent: true
+
   build:
     desc: Creates a compiled binary and copy configuration files into ./bin
     vars:
