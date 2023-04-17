@@ -20,3 +20,26 @@ This installs the `task` to `/usr/local/bin/task` so `sudo` is needed.
 task -l #or
 task list
 ~~~
+
+## Run The Server
+
+To run the server, we first need to start our database. A docker compose file has been created to make this simple. Run:
+
+~~~
+docker compose up postgres
+~~~
+
+to run the database.
+
+Then we can run the server:
+
+~~~
+task run #or
+task dev # for hot reloading
+~~~
+
+Even once the server has been killed, the docker container running postgres will continue to run. Stop it with:
+
+~~~
+docker compose down
+~~~
