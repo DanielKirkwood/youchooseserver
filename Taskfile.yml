@@ -68,6 +68,16 @@ tasks:
     cmds:
       - golangci-lint run
 
+  generate:
+    desc: Runs all //go:generate commands embedded in .go files
+    cmds:
+      - go generate ./...
+
+  generate:ent:
+    desc: Runs generation in ent directory
+    cmds:
+      - go generate ./ent
+
   docker-compose:start:
     desc: Starts postgres service
     cmds:
