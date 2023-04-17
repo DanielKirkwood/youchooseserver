@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,12 +11,14 @@ import (
 	"syscall"
 	"time"
 
+	"entgo.io/ent/dialect"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 
 	"github.com/DanielKirkwood/youchooseserver/config"
+	"github.com/DanielKirkwood/youchooseserver/ent"
 	"github.com/DanielKirkwood/youchooseserver/internal/middleware"
 	db "github.com/DanielKirkwood/youchooseserver/third_party/database"
 )
@@ -27,6 +30,7 @@ type Server struct {
 	Version    string
 	cfg        *config.Config
 	DB         *sqlx.DB
+	ent        *ent.Client
 	router     *chi.Mux
 	httpServer *http.Server
 }
@@ -81,6 +85,48 @@ func (s *Server) newDatabase() {
 	s.DB.SetMaxOpenConns(s.cfg.Database.MaxConnectionPool)
 	s.DB.SetMaxIdleConns(s.cfg.Database.MaxIdleConnections)
 	s.DB.SetConnMaxLifetime(s.cfg.Database.ConnectionsMaxLifeTime)
+
+	dsn := fmt.Sprintf("postgres://%s:%d/%s?sslmode=%s&user=%s&password=%s",
+		s.cfg.Database.Host,
+		s.cfg.Database.Port,
+		s.cfg.Database.Name,
+		s.cfg.Database.SslMode,
+		s.cfg.Database.User,
+		s.cfg.Database.Pass,
+	)
+	s.newEnt(dsn)
+}
+
+// newEnt opens new ent client connection.
+// It also adds mutator function which gets details of
+// changes carried out by users, useful for logging.
+func (s *Server) newEnt(dsn string) {
+	client, err := ent.Open(dialect.Postgres, dsn)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	client.Use(func(next ent.Mutator) ent.Mutator {
+		return ent.MutateFunc(func(ctx context.Context, mutation ent.Mutation) (ent.Value, error) {
+			meta, ok := ctx.Value(middleware.AuditID).(middleware.Event)
+			if !ok {
+				return next.Mutate(ctx, mutation)
+			}
+
+			val, err := next.Mutate(ctx, mutation)
+
+			meta.Table = mutation.Type()
+			meta.Action = middleware.Action(mutation.Op().String())
+
+			newValues, _ := json.Marshal(val)
+			meta.NewValues = string(newValues)
+			log.Println(meta)
+
+			return val, err
+		})
+	})
+
+	s.ent = client
 }
 
 // setGlobalMiddleware enables our custom middleware on
@@ -154,4 +200,11 @@ func gracefulShutdown(ctx context.Context, s *Server) error {
 	}
 
 	return nil
+}
+
+// closeResources closes any connections attached
+// to database, preventing leaks.
+func (s *Server) closeResources(ctx context.Context) {
+	_ = s.DB.Close()
+	_ = s.ent.Close()
 }
