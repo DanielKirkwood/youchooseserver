@@ -13,7 +13,10 @@ import (
 func TestJson(t *testing.T) {
 	xmlType := "application/xml"
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("[]"))
+		_, err := w.Write([]byte("[]"))
+		if err != nil {
+			t.Errorf("Error writing %v", err)
+		}
 	})
 
 	// explicitly set Content-Type to value that is

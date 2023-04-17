@@ -23,7 +23,10 @@ func TestCORS(t *testing.T) {
 	}
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("hello world!"))
+		_, err := w.Write([]byte("hello world!"))
+		if err != nil {
+			t.Errorf("Error writing %v", err)
+		}
 	})
 
 
