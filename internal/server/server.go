@@ -198,6 +198,7 @@ func gracefulShutdown(ctx context.Context, s *Server) error {
 	if err != nil {
 		log.Println(err)
 	}
+	s.closeResources(ctx)
 
 	return nil
 }
