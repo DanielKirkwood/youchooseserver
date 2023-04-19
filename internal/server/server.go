@@ -20,6 +20,7 @@ import (
 	"github.com/DanielKirkwood/youchooseserver/config"
 	"github.com/DanielKirkwood/youchooseserver/ent"
 	"github.com/DanielKirkwood/youchooseserver/internal/middleware"
+	"github.com/DanielKirkwood/youchooseserver/internal/util/email"
 	db "github.com/DanielKirkwood/youchooseserver/third_party/database"
 )
 
@@ -31,6 +32,7 @@ type Server struct {
 	cfg        *config.Config
 	DB         *sqlx.DB
 	ent        *ent.Client
+	email      *email.Client
 	router     *chi.Mux
 	httpServer *http.Server
 }
@@ -68,6 +70,7 @@ func (s *Server) Init(version string) {
 	s.Version = version
 	s.newRouter()
 	s.newDatabase()
+	s.newEmailClient()
 	s.setGlobalMiddleware()
 }
 
@@ -127,6 +130,12 @@ func (s *Server) newEnt(dsn string) {
 	})
 
 	s.ent = client
+}
+
+func (s *Server) newEmailClient() {
+	emailclient := email.NewClient(s.cfg.Email.SMPT, s.cfg.Email.Port, s.cfg.Email.Username, s.cfg.Email.Password)
+
+	s.email = emailclient
 }
 
 // setGlobalMiddleware enables our custom middleware on
