@@ -5,7 +5,7 @@ import (
 )
 
 type Client struct {
-	sender
+	Sender sender
 }
 
 type sender struct {
@@ -15,20 +15,20 @@ type sender struct {
 	password string
 }
 
-type Email interface {
+type IEmail interface {
 	CreateMessage(email string, message string) *gomail.Message
 	SendMail(m *gomail.Message) error
 }
 
 // NewClient creates a new client configured with the given sender options
 func NewClient(smtp string, port int, username string, password string) *Client {
-	sndr := sender{
+	sndr := &sender{
 		smpt:     smtp,
 		port:     port,
 		username: username,
 		password: password,
 	}
-	client := &Client{sender: sndr}
+	client := &Client{Sender: *sndr}
 	return client
 }
 
@@ -36,7 +36,7 @@ func (c *Client) CreateMessage(email string, message string) *gomail.Message {
 	m := gomail.NewMessage()
 
 	// from
-	m.SetHeader("From", c.username)
+	m.SetHeader("From", c.Sender.username)
 
 	// to
 	m.SetHeader("To", email)
@@ -51,7 +51,7 @@ func (c *Client) CreateMessage(email string, message string) *gomail.Message {
 
 func (c *Client) SendMail(m *gomail.Message) error {
 	// gmail smtp
-	d := gomail.NewDialer(c.smpt, c.port, c.username, c.password)
+	d := gomail.NewDialer(c.Sender.smpt, c.Sender.port, c.Sender.username, c.Sender.password)
 
 	// Send the email
 	if err := d.DialAndSend(m); err != nil {
