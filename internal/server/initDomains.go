@@ -32,7 +32,7 @@ func (s *Server) initVersion() {
 }
 
 func (s *Server) initAuth() {
-	newAuthRepo := authRepository.New(s.ent, s.email, "secret")
+	newAuthRepo := authRepository.New(s.ent, s.email, s.cfg.Api.TokenSecret)
 	newAuthUseCase := authUseCase.New(newAuthRepo)
 	s.Domain.Auth = authHandler.RegisterHTTPEndPoints(s.router, newAuthUseCase)
 }
