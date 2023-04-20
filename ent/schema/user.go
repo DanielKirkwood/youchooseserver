@@ -5,6 +5,7 @@ import (
 	"regexp"
 
 	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/mixin"
 )
@@ -36,12 +37,21 @@ func (User) Fields() []ent.Field {
 			}
 			return nil
 		}).Unique().NotEmpty(),
-		field.String("otp").Optional().Nillable(),
-		field.Time("otp_expires_at").Optional().Nillable(),
+		field.String("otp").
+			Sensitive().
+			Optional().
+			Nillable().
+			MinLen(36).
+			MaxLen(36),
+		field.Time("otp_expires_at").
+			Optional().
+			Nillable(),
 	}
 }
 
 // Edges of the User.
 func (User) Edges() []ent.Edge {
-	return []ent.Edge{}
+	return []ent.Edge{
+		edge.To("friends", User.Type).Through("friendships", Friendship.Type),
+	}
 }
