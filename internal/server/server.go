@@ -35,6 +35,7 @@ type Server struct {
 	email      *email.Client
 	router     *chi.Mux
 	httpServer *http.Server
+	Domain
 }
 
 type Options func(opts *Server) error
@@ -72,6 +73,7 @@ func (s *Server) Init(version string) {
 	s.newDatabase()
 	s.newEmailClient()
 	s.setGlobalMiddleware()
+	s.InitDomains()
 }
 
 // newRouter creates a new chi router on the servers
