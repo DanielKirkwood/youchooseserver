@@ -20,6 +20,7 @@ import (
 	"github.com/DanielKirkwood/youchooseserver/config"
 	"github.com/DanielKirkwood/youchooseserver/ent"
 	"github.com/DanielKirkwood/youchooseserver/internal/middleware"
+	"github.com/DanielKirkwood/youchooseserver/internal/util/email"
 	db "github.com/DanielKirkwood/youchooseserver/third_party/database"
 )
 
@@ -31,8 +32,10 @@ type Server struct {
 	cfg        *config.Config
 	DB         *sqlx.DB
 	ent        *ent.Client
+	email      *email.Client
 	router     *chi.Mux
 	httpServer *http.Server
+	Domain
 }
 
 type Options func(opts *Server) error
@@ -68,7 +71,9 @@ func (s *Server) Init(version string) {
 	s.Version = version
 	s.newRouter()
 	s.newDatabase()
+	s.newEmailClient()
 	s.setGlobalMiddleware()
+	s.InitDomains()
 }
 
 // newRouter creates a new chi router on the servers
@@ -103,7 +108,12 @@ func (s *Server) newDatabase() {
 func (s *Server) newEnt(dsn string) {
 	client, err := ent.Open(dialect.Postgres, dsn)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("failed opening connection to postgres: %v", err)
+	}
+
+	// Run the auto migration tool.
+	if err := client.Schema.Create(context.Background()); err != nil {
+		log.Fatalf("failed creating schema resources: %v", err)
 	}
 
 	client.Use(func(next ent.Mutator) ent.Mutator {
@@ -127,6 +137,12 @@ func (s *Server) newEnt(dsn string) {
 	})
 
 	s.ent = client
+}
+
+func (s *Server) newEmailClient() {
+	emailclient := email.NewClient(s.cfg.Email.SMPT, s.cfg.Email.Port, s.cfg.Email.Username, s.cfg.Email.Password)
+
+	s.email = emailclient
 }
 
 // setGlobalMiddleware enables our custom middleware on

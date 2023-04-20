@@ -17,6 +17,7 @@ type Api struct {
 	GracefulTimeout   time.Duration `split_words:"true" default:"8s"`
 
 	RequestLog bool `split_words:"true" default:"false"`
+	TokenSecret string `split_words:"true" default:"youchoose_secret"`
 }
 
 func API() Api {

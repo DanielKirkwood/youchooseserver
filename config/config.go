@@ -12,6 +12,7 @@ import (
 type Config struct {
 	Api      Api
 	Database Database
+	Email    Email
 }
 
 // New returns a new Config struct
@@ -24,5 +25,6 @@ func New() *Config {
 	return &Config{
 		Api:      API(),
 		Database: DataStore(),
+		Email:    EmailClient(),
 	}
 }
