@@ -76,6 +76,8 @@ func (r *authRepository) Create(ctx context.Context, req *auth.LoginRequest) err
 		"(If you did not request or were not expecting this email, " +
 		"you can safely ignore it.)"
 
+	fmt.Println(msg)
+
 	if err := r.email.SendMail(r.email.CreateMessage(u.Email, msg)); err != nil {
 		return err
 	}
