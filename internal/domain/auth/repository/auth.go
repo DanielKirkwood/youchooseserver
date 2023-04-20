@@ -40,7 +40,7 @@ func (r *authRepository) Create(ctx context.Context, req *auth.LoginRequest) err
 	)
 
 	u, err = r.ent.User.Query().Where(user.Email(req.Email)).Only(ctx)
-	if err != nil && err != err.(*ent.NotFoundError) {
+	if err != nil && !ent.IsNotFound(err){
 		return err
 	}
 
@@ -91,6 +91,10 @@ func (r *authRepository) Verify(ctx context.Context, req *auth.VerifyRequest) (s
 
 	if time.Now().After(*u.OtpExpiresAt) {
 		return "", fmt.Errorf("time expired. Please request a new password")
+	}
+
+	if u.Otp != &req.OTP {
+		return "", fmt.Errorf("incorrect otp")
 	}
 
 	_, tokenString, err := r.tokenAuth.Encode(map[string]interface{}{

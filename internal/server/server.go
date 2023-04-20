@@ -108,7 +108,12 @@ func (s *Server) newDatabase() {
 func (s *Server) newEnt(dsn string) {
 	client, err := ent.Open(dialect.Postgres, dsn)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("failed opening connection to postgres: %v", err)
+	}
+
+	// Run the auto migration tool.
+	if err := client.Schema.Create(context.Background()); err != nil {
+		log.Fatalf("failed creating schema resources: %v", err)
 	}
 
 	client.Use(func(next ent.Mutator) ent.Mutator {

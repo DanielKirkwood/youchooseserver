@@ -46,7 +46,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Verify(w http.ResponseWriter, r *http.Request) {
-	otp := query.String(r, "opt")
+	otp := query.String(r, "otp")
 	if len(otp) == 0 {
 		respond.Error(w, http.StatusBadRequest, errors.New("otp is required"))
 		return
@@ -71,6 +71,7 @@ func (h *Handler) Verify(w http.ResponseWriter, r *http.Request) {
 	tokenString, err := h.useCase.Verify(r.Context(), req)
 	if err != nil {
 		respond.Error(w, http.StatusUnauthorized, err)
+		return
 	}
 
 	respond.Json(w, http.StatusOK, map[string]string{"token": tokenString})
