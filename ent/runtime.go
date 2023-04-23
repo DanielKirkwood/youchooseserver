@@ -5,6 +5,7 @@ package ent
 import (
 	"time"
 
+	"github.com/DanielKirkwood/youchooseserver/ent/friendship"
 	"github.com/DanielKirkwood/youchooseserver/ent/schema"
 	"github.com/DanielKirkwood/youchooseserver/ent/user"
 )
@@ -13,6 +14,18 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	friendshipFields := schema.Friendship{}.Fields()
+	_ = friendshipFields
+	// friendshipDescCreatedAt is the schema descriptor for created_at field.
+	friendshipDescCreatedAt := friendshipFields[3].Descriptor()
+	// friendship.DefaultCreatedAt holds the default value on creation for the created_at field.
+	friendship.DefaultCreatedAt = friendshipDescCreatedAt.Default.(func() time.Time)
+	// friendshipDescUpdatedAt is the schema descriptor for updated_at field.
+	friendshipDescUpdatedAt := friendshipFields[4].Descriptor()
+	// friendship.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	friendship.DefaultUpdatedAt = friendshipDescUpdatedAt.Default.(func() time.Time)
+	// friendship.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	friendship.UpdateDefaultUpdatedAt = friendshipDescUpdatedAt.UpdateDefault.(func() time.Time)
 	userMixin := schema.User{}.Mixin()
 	userMixinFields0 := userMixin[0].Fields()
 	_ = userMixinFields0
@@ -40,6 +53,24 @@ func init() {
 		return func(email string) error {
 			for _, fn := range fns {
 				if err := fn(email); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// userDescOtp is the schema descriptor for otp field.
+	userDescOtp := userFields[1].Descriptor()
+	// user.OtpValidator is a validator for the "otp" field. It is called by the builders before save.
+	user.OtpValidator = func() func(string) error {
+		validators := userDescOtp.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(otp string) error {
+			for _, fn := range fns {
+				if err := fn(otp); err != nil {
 					return err
 				}
 			}

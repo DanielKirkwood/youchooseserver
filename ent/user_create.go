@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/DanielKirkwood/youchooseserver/ent/friendship"
 	"github.com/DanielKirkwood/youchooseserver/ent/user"
 )
 
@@ -82,6 +83,36 @@ func (uc *UserCreate) SetNillableOtpExpiresAt(t *time.Time) *UserCreate {
 	return uc
 }
 
+// AddFriendIDs adds the "friends" edge to the User entity by IDs.
+func (uc *UserCreate) AddFriendIDs(ids ...int) *UserCreate {
+	uc.mutation.AddFriendIDs(ids...)
+	return uc
+}
+
+// AddFriends adds the "friends" edges to the User entity.
+func (uc *UserCreate) AddFriends(u ...*User) *UserCreate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uc.AddFriendIDs(ids...)
+}
+
+// AddFriendshipIDs adds the "friendships" edge to the Friendship entity by IDs.
+func (uc *UserCreate) AddFriendshipIDs(ids ...int) *UserCreate {
+	uc.mutation.AddFriendshipIDs(ids...)
+	return uc
+}
+
+// AddFriendships adds the "friendships" edges to the Friendship entity.
+func (uc *UserCreate) AddFriendships(f ...*Friendship) *UserCreate {
+	ids := make([]int, len(f))
+	for i := range f {
+		ids[i] = f[i].ID
+	}
+	return uc.AddFriendshipIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uc *UserCreate) Mutation() *UserMutation {
 	return uc.mutation
@@ -143,6 +174,11 @@ func (uc *UserCreate) check() error {
 			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "User.email": %w`, err)}
 		}
 	}
+	if v, ok := uc.mutation.Otp(); ok {
+		if err := user.OtpValidator(v); err != nil {
+			return &ValidationError{Name: "otp", err: fmt.Errorf(`ent: validator failed for field "User.otp": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -188,6 +224,42 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := uc.mutation.OtpExpiresAt(); ok {
 		_spec.SetField(user.FieldOtpExpiresAt, field.TypeTime, value)
 		_node.OtpExpiresAt = &value
+	}
+	if nodes := uc.mutation.FriendsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   user.FriendsTable,
+			Columns: user.FriendsPrimaryKey,
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		createE := &FriendshipCreate{config: uc.config, mutation: newFriendshipMutation(uc.config, OpCreate)}
+		createE.defaults()
+		_, specE := createE.createSpec()
+		edge.Target.Fields = specE.Fields
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.FriendshipsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   user.FriendshipsTable,
+			Columns: []string{user.FriendshipsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(friendship.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

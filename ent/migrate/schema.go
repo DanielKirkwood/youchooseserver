@@ -8,13 +8,49 @@ import (
 )
 
 var (
+	// FriendshipsColumns holds the columns for the "friendships" table.
+	FriendshipsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"requested", "accepted"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "user_id", Type: field.TypeInt},
+		{Name: "friend_id", Type: field.TypeInt},
+	}
+	// FriendshipsTable holds the schema information for the "friendships" table.
+	FriendshipsTable = &schema.Table{
+		Name:       "friendships",
+		Columns:    FriendshipsColumns,
+		PrimaryKey: []*schema.Column{FriendshipsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "friendships_users_user",
+				Columns:    []*schema.Column{FriendshipsColumns[4]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "friendships_users_friend",
+				Columns:    []*schema.Column{FriendshipsColumns[5]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "friendship_user_id_friend_id",
+				Unique:  true,
+				Columns: []*schema.Column{FriendshipsColumns[4], FriendshipsColumns[5]},
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "create_time", Type: field.TypeTime},
 		{Name: "update_time", Type: field.TypeTime},
 		{Name: "email", Type: field.TypeString, Unique: true},
-		{Name: "otp", Type: field.TypeString, Nullable: true},
+		{Name: "otp", Type: field.TypeString, Nullable: true, Size: 36},
 		{Name: "otp_expires_at", Type: field.TypeTime, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
@@ -25,9 +61,12 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		FriendshipsTable,
 		UsersTable,
 	}
 )
 
 func init() {
+	FriendshipsTable.ForeignKeys[0].RefTable = UsersTable
+	FriendshipsTable.ForeignKeys[1].RefTable = UsersTable
 }

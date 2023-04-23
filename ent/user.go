@@ -24,10 +24,42 @@ type User struct {
 	// Email holds the value of the "email" field.
 	Email string `json:"email,omitempty"`
 	// Otp holds the value of the "otp" field.
-	Otp *string `json:"otp,omitempty"`
+	Otp *string `json:"-"`
 	// OtpExpiresAt holds the value of the "otp_expires_at" field.
 	OtpExpiresAt *time.Time `json:"otp_expires_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the UserQuery when eager-loading is set.
+	Edges        UserEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// UserEdges holds the relations/edges for other nodes in the graph.
+type UserEdges struct {
+	// Friends holds the value of the friends edge.
+	Friends []*User `json:"friends,omitempty"`
+	// Friendships holds the value of the friendships edge.
+	Friendships []*Friendship `json:"friendships,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [2]bool
+}
+
+// FriendsOrErr returns the Friends value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) FriendsOrErr() ([]*User, error) {
+	if e.loadedTypes[0] {
+		return e.Friends, nil
+	}
+	return nil, &NotLoadedError{edge: "friends"}
+}
+
+// FriendshipsOrErr returns the Friendships value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) FriendshipsOrErr() ([]*Friendship, error) {
+	if e.loadedTypes[1] {
+		return e.Friendships, nil
+	}
+	return nil, &NotLoadedError{edge: "friendships"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -107,6 +139,16 @@ func (u *User) Value(name string) (ent.Value, error) {
 	return u.selectValues.Get(name)
 }
 
+// QueryFriends queries the "friends" edge of the User entity.
+func (u *User) QueryFriends() *UserQuery {
+	return NewUserClient(u.config).QueryFriends(u)
+}
+
+// QueryFriendships queries the "friendships" edge of the User entity.
+func (u *User) QueryFriendships() *FriendshipQuery {
+	return NewUserClient(u.config).QueryFriendships(u)
+}
+
 // Update returns a builder for updating this User.
 // Note that you need to call User.Unwrap() before calling this method if this User
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -139,10 +181,7 @@ func (u *User) String() string {
 	builder.WriteString("email=")
 	builder.WriteString(u.Email)
 	builder.WriteString(", ")
-	if v := u.Otp; v != nil {
-		builder.WriteString("otp=")
-		builder.WriteString(*v)
-	}
+	builder.WriteString("otp=<sensitive>")
 	builder.WriteString(", ")
 	if v := u.OtpExpiresAt; v != nil {
 		builder.WriteString("otp_expires_at=")
