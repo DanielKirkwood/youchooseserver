@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -23,8 +24,21 @@ const (
 	FieldOtp = "otp"
 	// FieldOtpExpiresAt holds the string denoting the otp_expires_at field in the database.
 	FieldOtpExpiresAt = "otp_expires_at"
+	// EdgeFriends holds the string denoting the friends edge name in mutations.
+	EdgeFriends = "friends"
+	// EdgeFriendships holds the string denoting the friendships edge name in mutations.
+	EdgeFriendships = "friendships"
 	// Table holds the table name of the user in the database.
 	Table = "users"
+	// FriendsTable is the table that holds the friends relation/edge. The primary key declared below.
+	FriendsTable = "friendships"
+	// FriendshipsTable is the table that holds the friendships relation/edge.
+	FriendshipsTable = "friendships"
+	// FriendshipsInverseTable is the table name for the Friendship entity.
+	// It exists in this package in order to avoid circular dependency with the "friendship" package.
+	FriendshipsInverseTable = "friendships"
+	// FriendshipsColumn is the table column denoting the friendships relation/edge.
+	FriendshipsColumn = "user_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -36,6 +50,12 @@ var Columns = []string{
 	FieldOtp,
 	FieldOtpExpiresAt,
 }
+
+var (
+	// FriendsPrimaryKey and FriendsColumn2 are the table columns denoting the
+	// primary key for the friends relation (M2M).
+	FriendsPrimaryKey = []string{"user_id", "friend_id"}
+)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -56,6 +76,8 @@ var (
 	UpdateDefaultUpdateTime func() time.Time
 	// EmailValidator is a validator for the "email" field. It is called by the builders before save.
 	EmailValidator func(string) error
+	// OtpValidator is a validator for the "otp" field. It is called by the builders before save.
+	OtpValidator func(string) error
 )
 
 // OrderOption defines the ordering options for the User queries.
@@ -89,4 +111,46 @@ func ByOtp(opts ...sql.OrderTermOption) OrderOption {
 // ByOtpExpiresAt orders the results by the otp_expires_at field.
 func ByOtpExpiresAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldOtpExpiresAt, opts...).ToFunc()
+}
+
+// ByFriendsCount orders the results by friends count.
+func ByFriendsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newFriendsStep(), opts...)
+	}
+}
+
+// ByFriends orders the results by friends terms.
+func ByFriends(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newFriendsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByFriendshipsCount orders the results by friendships count.
+func ByFriendshipsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newFriendshipsStep(), opts...)
+	}
+}
+
+// ByFriendships orders the results by friendships terms.
+func ByFriendships(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newFriendshipsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newFriendsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, false, FriendsTable, FriendsPrimaryKey...),
+	)
+}
+func newFriendshipsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(FriendshipsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, true, FriendshipsTable, FriendshipsColumn),
+	)
 }
