@@ -16,10 +16,8 @@ type Friendship struct {
 // Fields of the Friendship.
 func (Friendship) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int("user_id").
-			Immutable(),
-		field.Int("friend_id").
-			Immutable(),
+		field.Int("user_id"),
+		field.Int("friend_id"),
 		field.Enum("status").
 			Values("requested", "accepted"),
 		field.Time("created_at").
